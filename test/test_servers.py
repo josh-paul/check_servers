@@ -9,7 +9,7 @@ import concurrent.futures
 try:
     # python 3
     from http.server import BaseHTTPRequestHandler, HTTPServer
-except:
+except Exception:
     # python 2 fallback
     from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
@@ -18,6 +18,7 @@ logger = logging.basicConfig(level=logging.DEBUG)
 
 with open('responses.txt') as json_in:
     responses = json.load(json_in)
+
 
 class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
