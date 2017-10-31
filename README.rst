@@ -5,22 +5,22 @@ A utility to check the /status endpoint on servers. Gathers the json data. Aggre
 application name and version. Then addes the counts. Outputs human readable table and raw json to 
 current working directory in status_output.json
 
-Sample server json data
+Sample server json data:
 ::
 
     {"Application":"Webapp1","Version":"1.2.2","Uptime":1572762564,"Request_Count":2171887540,"Error_Count":1066265249,"Success_Count":1105622291}
 
 
-Installation
+Installation:
 ::
 
     git clone git@github.com:josh-paul/check_servers.git
     cd check_servers
     pip install .
 
-Utility take input of servers hostnames contained in a \n delimited file.
+Utility takes input of servers hostnames contained in a newline delimited file.
 
-Sample usage
+Sample usage:
 ::
 
     check_servers -f test/servers.txt
