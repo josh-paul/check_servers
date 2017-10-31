@@ -30,7 +30,7 @@ setup(
 
     keywords='server servers status check server_status_check',
     packages=find_packages(exclude=['contrib', 'docs', 'test*']),
-    install_requires=['requests', 'tabulate'],
+    install_requires=['futures', 'requests', 'tabulate'],
     extras_require={},
     package_data={},
     data_files=[],

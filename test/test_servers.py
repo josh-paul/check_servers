@@ -6,7 +6,12 @@ import random
 
 import concurrent.futures
 
-from http.server import BaseHTTPRequestHandler, HTTPServer
+try:
+    # python 3
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+except:
+    # python 2 fallback
+    from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 
 logger = logging.basicConfig(level=logging.DEBUG)
