@@ -19,28 +19,6 @@ logging.getLogger('requests').setLevel(logging.CRITICAL)
 logging.getLogger('urllib3').setLevel(logging.CRITICAL)
 
 
-def arguments():
-    '''
-    Init arg parser and parse arguments.
-    '''
-    parser = argparse.ArgumentParser(
-        description='''Check status endpoing of servers specified in file.  Will output statistics
-            via stdout, and more detailed information in status.json'''
-        )
-
-    parser.add_argument('-f', '--file', action='store', dest='filename', type=str)
-    parser.add_argument('-t', '--threads', action='store', dest='threads', default=100, type=int)
-    parser.add_argument('-v', '--verbose', action='store_true', dest='verbose', default=False)
-
-    args = parser.parse_args()
-
-    if not args.filename:
-        print('You must supply a file containing the servers to check.')
-        parser.print_help()
-        sys.exit(1)
-    return args
-
-
 class StatusCheck(object):
     def __init__(self, filename, threads, verbose):
         self.applications = {}
@@ -66,7 +44,11 @@ class StatusCheck(object):
 
     def _get_server_list(self, filename):
         '''
-        Read in list of servers from specified files.
+        Read in list of servers from specified file.
+        Reads into memory, main use case is for upto 1000'ish servers. In this case this is not
+        that memory intensive.
+        If use case were to grow to much larger file sizes, would want to turn into file stream,
+        only reading small chunks of file as needed.
 
         Sets self.servers on the class.
         '''
@@ -83,24 +65,24 @@ class StatusCheck(object):
         Creates the self.output structure and populates.  Used for creating human friendly
         output to stdout.
         '''
-        url = 'http://{0}/status'.format(server)
+        url = 'http://{host}/status'.format(host=server)
         try:
             response = requests.get(url)
             if response.ok:
-                try:
-                    status = response.json()
-                    status['Host'] = server
-                    self.collected_status.append(status)
-                    app_ver = self._get_app_version(status['Application'], status['Version'])
-                    app_ver['Request_Count'] += status['Request_Count']
-                    app_ver['Error_Count'] += status['Error_Count']
-                    app_ver['Success_Count'] += status['Success_Count']
-                    if self.verbose:
-                        LOGGER.info(status)
-                except json.decoder.JSONDecodeError:
-                    LOGGER.debug('Unable to parse json response from %s', url)
+                status = response.json()
+                status['Host'] = server
+                self.collected_status.append(status)
+
+                app_ver = self._get_app_version(status['Application'], status['Version'])
+                app_ver['Request_Count'] += status['Request_Count']
+                app_ver['Error_Count'] += status['Error_Count']
+                app_ver['Success_Count'] += status['Success_Count']
+                if self.verbose:
+                    LOGGER.info(status)
             else:
                 LOGGER.info('Server %s returned status code: %s', server, response.status_code)
+        except json.decoder.JSONDecodeError:
+            LOGGER.debug('Unable to parse json response from %s', url)
         except requests.exceptions.ConnectionError:
             LOGGER.info('Server %s failed to connect.', server)
 
@@ -119,17 +101,42 @@ class StatusCheck(object):
             json.dump(self.collected_status, file_out)
 
 
+def parse_arguments():
+    '''
+    Init arg parser and parse arguments.
+    '''
+    parser = argparse.ArgumentParser(
+        description=(
+            'Check status endpoing of servers specified in file.  Will output statistics via '
+            'stdout, and more detailed information in status.json'
+
+        )
+    )
+
+    parser.add_argument('-f', '--file', action='store', dest='filename', type=str)
+    parser.add_argument('-t', '--threads', action='store', dest='threads', default=100, type=int)
+    parser.add_argument('-v', '--verbose', action='store_true', dest='verbose', default=False)
+
+    args = parser.parse_args()
+
+    if not args.filename:
+        print('You must supply a file containing the servers to check.')
+        parser.print_help()
+        sys.exit(1)
+    return args
+
+
 def cli():
-    args = arguments()
+    args = parse_arguments()
     status = StatusCheck(args.filename, args.threads, args.verbose)
     status.gather_servers_status()
     status.write_to_disk()
 
     for app in sorted(status.output.keys()):
-        table = [[app, 'Requests', 'Success', 'Errors']]
+        table = [[app, 'Success', 'Requests', 'Errors']]
         for version in sorted(status.output[app].keys()):
             count = status.output[app][version]
             table.append(
-                [version, count['Request_Count'], count['Success_Count'], count['Error_Count']]
+                [version, count['Success_Count'], count['Request_Count'], count['Error_Count']]
             )
-        print(tabulate(table))
+        print(tabulate(table, headers='firstrow', tablefmt='grid'))
