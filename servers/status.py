@@ -21,7 +21,7 @@ logging.getLogger('urllib3').setLevel(logging.CRITICAL)
 
 def arguments():
     '''
-    Init argparer and parse arguments.
+    Init arg parser and parse arguments.
     '''
     parser = argparse.ArgumentParser(
         description='''Check status endpoing of servers specified in file.  Will output statistics
